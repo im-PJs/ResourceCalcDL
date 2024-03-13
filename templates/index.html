@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resource Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Resource Downloader</h1>
+        <form action="/" method="POST">
+            <div class="form-group">
+                <label for="resourceCalculatorURL">Enter ResourceCalculator URL:</label>
+                <input type="url" id="resourceCalculatorURL" name="resourceCalculatorURL" placeholder="https://resourcecalculator.com/minecraft/#..." required class="url-input">
+            </div>
+            <div class="form-group">
+                <label for="fileType">Select File Type:</label>
+                <select id="fileType" name="fileType" class="file-type-select">
+                    <option value="txt">Text (.txt)</option>
+                    <option value="json">JSON (.json)</option>
+                    <option value="csv">CSV (.csv)</option>
+                </select>
+            </div>
+            <button type="submit" class="submit-button">Download Data</button>
+        </form>
+
+        {% if text_instructions %}
+            <div id="results">
+                <h3>Extracted Instructions:</h3>
+                <pre>{{ text_instructions }}</pre>
+            </div>
+        {% endif %}
+
+        {% if error %}
+            <div class="error-message">
+                <p>{{ error }}</p>
+            </div>
+        {% endif %}
+
+        {% if file_content %}
+            <div class="download-section">
+                <a href="/download?filename={{ filename }}&filetype={{ file_type }}" class="download-button">Download {{ filename }}</a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

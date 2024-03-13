@@ -1,0 +1,8 @@
+2024-03-13 01:49:48,890 - INFO - Processing URL: https://resourcecalculator.com/minecraft/#sprucelog=223&crimsonhyphae=321&chest=213&jackolantern=444&oakboat=21&wheat=1&endcrystal=3
+2024-03-13 01:49:48,893 - DEBUG - Starting new HTTPS connection (1): resourcecalculator.com:443
+2024-03-13 01:49:49,309 - DEBUG - https://resourcecalculator.com:443 "GET /minecraft/ HTTP/1.1" 200 43220
+2024-03-13 01:49:49,537 - ERROR - An error occurred in the main function: 'NoneType' object is not subscriptable
+2024-03-13 01:52:57,675 - INFO - Processing URL: https://resourcecalculator.com/minecraft/#sprucelog=223&crimsonhyphae=321&chest=213&jackolantern=444&oakboat=21&wheat=1&endcrystal=3
+2024-03-13 01:52:57,678 - DEBUG - Starting new HTTPS connection (1): resourcecalculator.com:443
+2024-03-13 01:52:58,002 - DEBUG - https://resourcecalculator.com:443 "GET /minecraft/ HTTP/1.1" 200 43220
+2024-03-13 01:52:58,232 - ERROR - An error occurred in the main function: 'NoneType' object is not subscriptable
