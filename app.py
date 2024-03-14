@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.edge.service import Service
+from selenium.webdriver.edge.options import Options as EdgeOptions
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.remote_connection import LOGGER as seleniumLogger
@@ -25,147 +26,169 @@ app.secret_key = 'PJsSecretKey'  # Set a secret key for the session
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    filename = "None.txt"  # Default filename
     if request.method == 'POST':
-        logging.debug(f"File Type: {request.form['fileType']}")
-        resource_calculator_url = request.form['resourceCalculatorURL']
-        file_type = request.form['fileType']
+        resource_calculator_url = request.form.get('resourceCalculatorURL')
         text_instructions = scrape_resource_calculator(resource_calculator_url)
-        logging.debug(f"text instructions: {text_instructions}")
-        file_content = text_instructions
-        logging.debug(f"file content: {file_content}")
-        # Convert the instructions to the selected file format
-        if file_type == 'txt':
-            print(f"File Content: {file_content}")
-            filename = 'instructions.txt'
-        elif file_type == 'json':
-            # Assuming instructions are in a dict format; adjust as needed
-            file_content = json.dumps(text_instructions)
-            filename = 'instructions.json'
-        elif file_type == 'csv':
-            output = io.StringIO()
-            writer = csv.writer(output)
-            # Split the instructions into lines and write each line to the CSV
-            for line in text_instructions.split('\n'):  # Split the text into lines
-                writer.writerow([line])  # Write the line to the CSV file
-            file_content = output.getvalue()
-            filename = 'instructions.csv'
-        
-        session['file_content'] = file_content
+        logging.debug(f"URL submitted: {resource_calculator_url}")
+        logging.debug(f"Extracted instructions: {text_instructions}")
+
+        # No file_type is involved here since we're just submitting URL
+        # Store URL and text_instructions for later use, such as in the download step
+        session['text_instructions'] = text_instructions
         session['url'] = resource_calculator_url
-        # Store file content in the session or another mechanism as needed
-        # For now, return the content and filename to be used in the template
-        return render_template('index.html', text_instructions=text_instructions, file_content=file_content, filename=filename, file_type=file_type)
+
+        # Render template with instructions to show to the user and potentially choose file type later
+        return render_template('index.html', text_instructions=text_instructions)
     else:
-        return render_template('index.html', text_instructions=None, filename=filename)  # Pass filename for 'GET' request
+        # Just show the initial form if no POST request has been made
+        return render_template('index.html', text_instructions=None)
 
 @app.route('/download')
 def download_file():
-    filename = request.args.get('filename', 'instructions.csv')
-    file_type = request.args.get('filetype', 'csv')
-    file_content = session.get('file_content', '')
+    # Retrieve stored data for file generation
+    text_instructions = session.get('text_instructions', '')
     url = session.get('url', '')
 
+    # Determine file type from query parameters; default to CSV
+    file_type = request.args.get('filetype', 'csv')
+
+    # Based on the file type, process the text instructions accordingly
     if file_type == 'csv':
-        output = io.StringIO()
-        csv_writer = csv.writer(output)
-
-        sections = file_content.split('Instructions')
-        base_ingredients_section = sections[0].strip()
-        instructions_section = sections[1].strip() if len(sections) > 1 else ""
-
-        csv_writer.writerow(["Resource Calculator URL:", url])
-        csv_writer.writerow([])
-        csv_writer.writerow(["Ingredient", "Quantity"])
-        for line in base_ingredients_section.split('\n')[1:]:
-            line = line.strip()
-            if line and not line.lower().startswith("text"):
-                if '(' in line:  # Quantities with parentheses indicating details
-                    quantity_end_index = line.find(')') + 1
-                    quantity = line[:quantity_end_index].strip()
-                    name = line[quantity_end_index:].strip()
-                else:  # Quantities without parentheses
-                    parts = line.split(' ', 1)
-                    if len(parts) == 2:
-                        quantity, name = parts[0], parts[1]
-                    else:
-                        # Fallback in case of unexpected format
-                        quantity = ""
-                        name = line
-
-                csv_writer.writerow([name, quantity])
-
-        csv_writer.writerow([])
-        csv_writer.writerow(["Instructions"])
-        for instruction in instructions_section.split('\n'):
-            instruction = instruction.strip().replace("[Beta]", "").strip()
-            if instruction:
-                csv_writer.writerow([instruction])
-
-        file_content = output.getvalue()
-        content_type = "text/csv"
-
+        filename, file_content, content_type = convert_to_csv(text_instructions, url)
     elif file_type == 'json':
-        # Split the content into base ingredients and instructions sections.
-        sections = file_content.split("Text Instructions [Beta]")
-        base_ingredients_section = sections[0].strip() if len(sections) > 0 else ""
-        instructions_section = sections[1].strip() if len(sections) > 1 else ""
+        filename, file_content, content_type = convert_to_json(text_instructions, url)
+    else:  # Default to plain text
+        filename, file_content, content_type = convert_to_txt(text_instructions, url)
 
-        # Parsing base ingredients.
-        ingredients = []
-        for line in base_ingredients_section.split('\\n')[1:]:  # Skip the first line if it's a header
-            line = line.strip()
-            if line:  # Skip empty lines
-                if '(' in line and ')' in line:  # If line contains details within parentheses
-                    # Find the index where quantity ends (right after the closing parenthesis)
-                    quantity_end_index = line.find(')') + 1
-                    # Extract quantity and name based on the parenthesis
-                    quantity = line[:quantity_end_index].strip()
-                    name = line[quantity_end_index:].strip()
-                else:  # If there are no parentheses, split normally
-                    parts = line.split(' ', 1)  # Split into two parts at the first space
-                    if len(parts) == 2:
-                        quantity, name = parts
-                    else:
-                        # If splitting went wrong, assume whole line is the name
-                        quantity = ""
-                        name = line
-                # Append parsed data to ingredients list
-                ingredients.append({"Ingredient": name, "Quantity": quantity})
-
-        # Parsing instructions.
-        instructions = []
-        for instr in instructions_section.split('\\n'):  # Split instructions by newline
-            instr = instr.strip()  # Remove leading/trailing whitespaces
-            if instr and not instr.startswith("[Beta]") and instr != "":  # Skip empty lines and lines starting with [Beta]
-                instructions.append(instr)
-
-        # Construct the JSON structure.
-        json_output = {
-            "ResourceCalculatorURL": url,
-            "BaseIngredients": ingredients,
-            "Instructions": instructions
-        }
-
-        # Convert the dictionary to a JSON string.
-        file_content = json.dumps(json_output, indent=4)
-        content_type = "application/json"
-
-    else:
-        content_type = "text/plain"
-        
+    # Send the processed file to the user
     return Response(
         file_content,
         mimetype=content_type,
         headers={"Content-disposition": f"attachment; filename={filename}"})
 
+def convert_to_csv(text_instructions, url):
+    output = io.StringIO()
+    csv_writer = csv.writer(output)
+
+    # Assuming 'text_instructions' contains the relevant data split by 'Instructions'
+    sections = text_instructions.split('Instructions')
+    base_ingredients_section = sections[0].strip()
+    instructions_section = sections[1].strip() if len(sections) > 1 else ""
+
+    # Write headers and sections to CSV
+    csv_writer.writerow(["Resource Calculator URL:", url])
+    csv_writer.writerow([])
+    csv_writer.writerow(["Ingredient", "Quantity"])
+    for line in base_ingredients_section.split('\n')[1:]:
+        line = line.strip()
+        if line and not line.lower().startswith("text"):
+            if '(' in line:  # Quantities with parentheses indicating details
+                quantity_end_index = line.find(')') + 1
+                quantity = line[:quantity_end_index].strip()
+                name = line[quantity_end_index:].strip()
+            else:  # Quantities without parentheses
+                parts = line.split(' ', 1)
+                if len(parts) == 2:
+                    quantity, name = parts[0], parts[1]
+                else:
+                    # Fallback in case of unexpected format
+                    quantity = ""
+                    name = line
+
+            csv_writer.writerow([name, quantity])
+
+    csv_writer.writerow([])  # Blank line before instructions
+    csv_writer.writerow(["Instructions"])  # Instructions header
+
+    # Remove "[Beta]" from each instruction, then strip again to remove any leading/trailing whitespace
+    for instruction in instructions_section.split('\n'):
+        cleaned_instruction = instruction.replace("[Beta]", "").strip()
+        if cleaned_instruction:  # Check that the instruction is not empty after cleaning
+            csv_writer.writerow([cleaned_instruction])
+
+    file_content = output.getvalue()
+    content_type = "text/csv"
+    return 'instructions.csv', file_content, content_type
+
+def convert_to_txt(text_instructions, url):
+    output = io.StringIO()
+
+    # Write the URL at the top
+    output.write(f"Resource Calculator URL: {url}\n\n")
+
+    # Split the text_instructions into base ingredients and instructions sections
+    # Make sure to split only on the first occurrence in case "Instructions" appears within the content
+    sections = text_instructions.split('Instructions', 1)
+    base_ingredients_section = sections[0].strip()
+    instructions_section = sections[1].strip() if len(sections) > 1 else ""
+
+    # Write the Base Ingredients section
+    output.write("Base Ingredients:\n")
+    for line in base_ingredients_section.split('\n'):
+        cleaned_line = line.strip()
+        if cleaned_line and not cleaned_line.lower().startswith("base ingredients") and not cleaned_line.lower() == "text":
+            output.write(f"{cleaned_line}\n")
+
+    # If there's an instructions section, add a newline for spacing before writing it
+    if instructions_section:
+        output.write("\nInstructions:\n")
+        for instruction in instructions_section.split('\n'):
+            cleaned_instruction = instruction.replace("[Beta]", "").strip()
+            if cleaned_instruction and cleaned_instruction.lower() != "text":
+                output.write(f"{cleaned_instruction}\n")
+
+    file_content = output.getvalue()
+    output.close()
+
+    return 'instructions.txt', file_content, 'text/plain'
+
+def convert_to_json(text_instructions, url):
+    sections = text_instructions.split("Instructions")
+    base_ingredients_section = sections[0].strip() if len(sections) > 0 else ""
+    instructions_section = sections[1].strip() if len(sections) > 1 else ""
+
+    ingredients = []
+    for line in base_ingredients_section.split('\n')[1:]:  # Assuming the first line is a header
+        line = line.strip()
+        if line:  # Check that line is not empty
+            if '(' in line and ')' in line:  # If line contains details within parentheses
+                # Find the index where quantity ends (right after the closing parenthesis)
+                quantity_end_index = line.find(')') + 1
+                # Extract quantity and name based on the parenthesis
+                quantity = line[:quantity_end_index].strip()
+                name = line[quantity_end_index:].strip()
+                ingredients.append({"Ingredient": name, "Quantity": quantity})
+            else:  # If there are no parentheses, split normally
+                parts = line.split(' ', 1)  # Split into two parts at the first space
+                if len(parts) == 2:
+                    quantity, name = parts
+                    ingredients.append({"Ingredient": name, "Quantity": quantity})
+                else:
+                    # If splitting went wrong, assume whole line is the name or log an error
+                    logging.warning(f"Line format is incorrect: {line}")
+
+    # Remove any instructions that are exactly "[Beta]" or contain it
+    instructions = [instr.strip() for instr in instructions_section.split('\n') 
+                    if instr.strip() and "[Beta]" not in instr.strip()]
+    json_output = {
+        "ResourceCalculatorURL": url,
+        "BaseIngredients": ingredients,
+        "Instructions": instructions
+    }
+
+    return 'instructions.json', json.dumps(json_output, indent=4), 'application/json'
 
 def scrape_resource_calculator(url):
     driver = None
     try:
+        # Set up the WebDriver options to enable headless mode
+        edge_options = EdgeOptions()
+        edge_options.add_argument("--headless")  # Enable headless mode
+        edge_options.add_argument("--disable-gpu")  # Optional: for some versions of Windows
+
         # Set up the WebDriver
         service = Service(EdgeChromiumDriverManager().install())
-        driver = webdriver.Edge(service=service)
+        driver = webdriver.Edge(service=service, options=edge_options)
 
         # Navigate to the page
         driver.get(url)
@@ -187,6 +210,7 @@ def scrape_resource_calculator(url):
         # Make sure to close the browser
         if driver:
             driver.quit()
+
 
 if __name__ == '__main__':
     app.run(debug=True)

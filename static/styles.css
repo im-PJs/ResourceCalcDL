@@ -1,69 +1,113 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #edf2f7;
     margin: 0;
     padding: 0;
-}
-
-.container {
-    max-width: 600px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: white;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
+    line-height: 1.6;
     color: #333;
 }
 
+/* Container adjustments for padding */
+.container {
+    max-width: 850px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box; /* Ensures padding is included in the width */
+}
+
+/* Ensure the download button fits within the container */
+.download-section {
+    text-align: center; /* Center the download button if it's smaller than the container */
+    margin: 20px 0; /* Adds some space above and below the download section */
+}
+
+.download-button {
+    width: auto; /* Allows the button to size according to its content */
+    padding: 10px 20px; /* Adjust padding to ensure text fits nicely */
+    max-width: 100%; /* Prevents the button from exceeding the container's width */
+    box-sizing: border-box; /* Ensures padding is included in the button's width */
+}
+
+h1, h3 {
+    color: #444;
+}
+
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 1.5rem;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
 }
 
-.form-group input[type="text"],
+.form-group input[type="url"],
 .form-group select {
-    width: 100%;
-    padding: 10px;
+    width: calc(100% - 1rem);
+    padding: 0.5rem;
     border-radius: 5px;
     border: 1px solid #ddd;
+    box-sizing: border-box;
 }
 
-button {
-    background-color: #007bff;
-    color: white;
-    padding: 10px 20px;
+button, .download-button {
+    width: 100%;
+    padding: 0.8rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
+    color: white;
+    background-color: #4CAF50;
     cursor: pointer;
+    display: inline-block;
 }
 
-button:hover {
-    background-color: #0056b3;
+button:hover,
+.download-button:hover {
+    background-color: #45a049;
 }
 
 #results {
-    margin-top: 20px;
-    background-color: #f4f4f4;
-    padding: 20px;
-    border-radius: 5px;
+    background-color: #f7f7f7;
+    padding: 1rem;
+    border-left: 4px solid #007bff;
+    margin-top: 1rem;
 }
 
-.download-button {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    margin-top: 20px;
+#results pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
-.download-button:hover {
-    background-color: #45a049;
+
+.error-message {
+    color: #e53e3e;
+    margin-top: 1rem;
+}
+
+.form-group input[type="url"]:focus,
+.form-group select:focus {
+    border-color: #4299e1;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+
+
+@media (max-width: 640px) {
+    .container {
+        margin: 20px;
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    button, .download-button {
+        padding: 0.5rem;
+    }
 }
