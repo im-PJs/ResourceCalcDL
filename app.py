@@ -6,9 +6,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options as EdgeOptions
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.remote_connection import LOGGER as seleniumLogger
 import logging
@@ -182,13 +182,13 @@ def scrape_resource_calculator(url):
     driver = None
     try:
         # Set up the WebDriver options to enable headless mode
-        edge_options = EdgeOptions()
-        edge_options.add_argument("--headless")  # Enable headless mode
-        edge_options.add_argument("--disable-gpu")  # Optional: for some versions of Windows
+        options = ChromeOptions()
+        options.add_argument('--headless')  # Only if you want to run headless
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        service = ChromeService(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
 
-        # Set up the WebDriver
-        service = Service(EdgeChromiumDriverManager().install())
-        driver = webdriver.Edge(service=service, options=edge_options)
 
         # Navigate to the page
         driver.get(url)
