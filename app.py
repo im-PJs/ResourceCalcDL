@@ -22,7 +22,7 @@ logging.getLogger('selenium').setLevel(logging.WARNING)
 logging.getLogger('webdriver_manager').setLevel(logging.WARNING)
 
 app = Flask(__name__)
-app.secret_key = 'PJsSecretKey'  # Set a secret key for the session
+app.secret_key = 'PJsSecretKey1'  # Set a secret key for the session
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
